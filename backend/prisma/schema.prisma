@@ -1,0 +1,369 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// YOUR EXISTING MODELS (unchanged)
+// ============================================
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  emailAccounts EmailAccount[]
+}
+
+model EmailAccount {
+  id           String        @id @default(cuid())
+  userId       String
+  provider     EmailProvider
+  email        String
+  accessToken  String
+  refreshToken String?
+  tokenExpiry  DateTime?
+  lastSyncAt   DateTime?
+  syncCursor   String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages     Message[]
+
+  @@unique([userId, email, provider])
+  @@index([userId])
+  @@index([provider])
+}
+
+model Message {
+  id             String            @id @default(cuid())
+  emailAccountId String
+  externalId     String
+  threadId       String?
+  from           String
+  fromName       String?
+  to             String[]
+  cc             String[]
+  subject        String
+  snippet        String?
+  body           String?
+  receivedAt     DateTime
+  labels         String[]
+  categories     String[]
+  syncStatus     MessageSyncStatus @default(SYNCED)
+  isBroker       Boolean?
+  brokerName     String?
+  laneInfo       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  emailAccount   EmailAccount      @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  loads          Load[]            @relation("MessageLoads")
+
+  @@unique([emailAccountId, externalId])
+  @@index([emailAccountId, receivedAt])
+  @@index([from])
+  @@index([isBroker])
+}
+
+model SyncJob {
+  id             String        @id @default(cuid())
+  emailAccountId String
+  provider       EmailProvider
+  status         String
+  startedAt      DateTime      @default(now())
+  completedAt    DateTime?
+  messagesFound  Int           @default(0)
+  messagesSynced Int           @default(0)
+  errorMessage   String?
+
+  @@index([emailAccountId])
+  @@index([status, startedAt])
+}
+
+enum EmailProvider {
+  GMAIL
+  OUTLOOK
+}
+
+enum MessageSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model Load {
+  id            String   @id @default(uuid())
+  messageId     String
+  message       Message  @relation("MessageLoads", fields: [messageId], references: [id], onDelete: Cascade)
+  
+  origin        String?
+  destination   String?
+  distance      Float?
+  totalRate     Float?
+  ratePerMile   Float?
+  equipment     String?
+  weight        String?
+  pickupDate    DateTime?
+  deliveryDate  DateTime?
+  
+  broker        String?
+  brokerEmail   String?
+  brokerPhone   String?
+  
+  priorityScore Float    @default(0)
+  fitReason     String?
+  
+  extractedAt   DateTime @default(now())
+  
+  @@index([messageId])
+  @@index([broker, extractedAt])
+  @@index([priorityScore])
+  @@index([origin, destination])
+}
+
+model BrokerStats {
+  id                String   @id @default(uuid())
+  broker            String   @unique
+  brokerEmail       String?
+  
+  totalLoads        Int      @default(0)
+  loadsThisMonth    Int      @default(0)
+  loadsThisWeek     Int      @default(0)
+  
+  avgRatePerMile    Float?
+  highestRate       Float?
+  lowestRate        Float?
+  
+  topLanes          Json?
+  laneCount         Int      @default(0)
+  
+  firstContactDate  DateTime
+  lastContactDate   DateTime
+  avgDaysBetween    Float?
+  
+  relationshipScore Float    @default(0)
+  notes             String?
+  
+  updatedAt         DateTime @updatedAt
+  
+  @@index([relationshipScore])
+  @@index([broker])
+}
+
+model OutreachDraft {
+  id             Int      @id @default(autoincrement())
+  brokerName     String
+  recipientEmail String
+  subject        String
+  body           String   @db.Text
+  emailType      String
+  reasoning      String   @db.Text
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  sentAt         DateTime?
+  gmailMessageId String?
+  openedAt       DateTime?
+  repliedAt      DateTime?
+  replyCount     Int       @default(0)
+  
+  variant        String?
+  
+  isFollowUp     Boolean   @default(false)
+  parentDraftId  Int?
+  followUpSentAt DateTime?
+
+  @@index([status])
+  @@index([brokerName])
+  @@index([sentAt])
+  @@index([parentDraftId])
+  @@map("outreach_drafts")
+}
+
+model BrokerConversation {
+  id             Int      @id @default(autoincrement())
+  brokerName     String
+  brokerEmail    String
+  
+  lastOutreach   DateTime?
+  lastReply      DateTime?
+  
+  totalOutreach  Int      @default(0)
+  totalReplies   Int      @default(0)
+  
+  status         String   @default("active")
+  notes          String?  @db.Text
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@unique([brokerName, brokerEmail])
+  @@index([status])
+  @@map("broker_conversations")
+}
+
+// ============================================
+// NEW FLEET MODELS FOR RIGBY (add these)
+// ============================================
+
+model Fleet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trucks    Truck[]
+  trailers  Trailer[]
+  drivers   Driver[]
+  expenses  Expense[]
+  loads     FleetLoad[]
+}
+
+model Truck {
+  id             String   @id @default(cuid())
+  fleetId        String
+  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  
+  year           Int
+  make           String
+  model          String
+  miles          Int
+  purchasePrice  Float
+  currentValue   Float?
+  
+  loanAmount     Float?
+  loanAPR        Float?
+  loanTerm       Int?
+  downPayment    Float?
+  loanBalance    Float?
+  
+  status         String   @default("active")
+  notes          String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([fleetId])
+}
+
+model Trailer {
+  id             String   @id @default(cuid())
+  fleetId        String
+  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  
+  year           Int
+  make           String
+  type           String
+  length         Int
+  purchasePrice  Float
+  currentValue   Float?
+  
+  loanAmount     Float?
+  loanAPR        Float?
+  loanTerm       Int?
+  downPayment    Float?
+  loanBalance    Float?
+  
+  hasEStraps     Boolean  @default(false)
+  hasTrailerLock Boolean  @default(false)
+  hasSlidingDoor Boolean  @default(false)
+  hasReefer      Boolean  @default(false)
+  floorType      String?
+  
+  status         String   @default("active")
+  notes          String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([fleetId])
+}
+
+model Driver {
+  id             String   @id @default(cuid())
+  fleetId        String
+  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  
+  name           String
+  payStructure   String
+  payRate        Float
+  
+  preferredSchedule String?
+  homeDays       Int?
+  
+  hasELD         Boolean  @default(false)
+  hasDashcam     Boolean  @default(false)
+  gpsType        String?
+  
+  medCardExpiry  DateTime?
+  drugTestDate   DateTime?
+  
+  status         String   @default("active")
+  notes          String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([fleetId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  fleetId     String
+  fleet       Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  
+  category    String
+  amount      Float
+  description String?
+  date        DateTime @default(now())
+  isEstimate  Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([fleetId, category])
+  @@index([fleetId, date])
+}
+
+model FleetLoad {
+  id          String   @id @default(cuid())
+  fleetId     String
+  fleet       Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  
+  loadNumber  String?
+  origin      String?
+  destination String?
+  miles       Int
+  revenue     Float
+  date        DateTime @default(now())
+  
+  notes       String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([fleetId, date])
+}
+
+model ComplianceData {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  
+  mcNumber    String?
+  dotNumber   String?
+  
+  insuranceCoverage Float?
+  insurancePremium  Float?
+  
+  maintenanceSchedule String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
