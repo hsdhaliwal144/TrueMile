@@ -7,10 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// YOUR EXISTING MODELS (unchanged)
-// ============================================
-
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -62,8 +58,8 @@ model Message {
   laneInfo       Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  emailAccount   EmailAccount      @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
   loads          Load[]            @relation("MessageLoads")
+  emailAccount   EmailAccount      @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
 
   @@unique([emailAccountId, externalId])
   @@index([emailAccountId, receivedAt])
@@ -86,22 +82,9 @@ model SyncJob {
   @@index([status, startedAt])
 }
 
-enum EmailProvider {
-  GMAIL
-  OUTLOOK
-}
-
-enum MessageSyncStatus {
-  PENDING
-  SYNCED
-  FAILED
-}
-
 model Load {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   messageId     String
-  message       Message  @relation("MessageLoads", fields: [messageId], references: [id], onDelete: Cascade)
-  
   origin        String?
   destination   String?
   distance      Float?
@@ -111,16 +94,14 @@ model Load {
   weight        String?
   pickupDate    DateTime?
   deliveryDate  DateTime?
-  
   broker        String?
   brokerEmail   String?
   brokerPhone   String?
-  
-  priorityScore Float    @default(0)
+  priorityScore Float     @default(0)
   fitReason     String?
-  
-  extractedAt   DateTime @default(now())
-  
+  extractedAt   DateTime  @default(now())
+  message       Message   @relation("MessageLoads", fields: [messageId], references: [id], onDelete: Cascade)
+
   @@index([messageId])
   @@index([broker, extractedAt])
   @@index([priorityScore])
@@ -131,54 +112,45 @@ model BrokerStats {
   id                String   @id @default(uuid())
   broker            String   @unique
   brokerEmail       String?
-  
   totalLoads        Int      @default(0)
   loadsThisMonth    Int      @default(0)
   loadsThisWeek     Int      @default(0)
-  
   avgRatePerMile    Float?
   highestRate       Float?
   lowestRate        Float?
-  
   topLanes          Json?
   laneCount         Int      @default(0)
-  
   firstContactDate  DateTime
   lastContactDate   DateTime
   avgDaysBetween    Float?
-  
   relationshipScore Float    @default(0)
   notes             String?
-  
   updatedAt         DateTime @updatedAt
-  
+
   @@index([relationshipScore])
   @@index([broker])
 }
 
 model OutreachDraft {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   brokerName     String
   recipientEmail String
   subject        String
-  body           String   @db.Text
+  body           String
   emailType      String
-  reasoning      String   @db.Text
-  status         String   @default("draft")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  reasoning      String
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   sentAt         DateTime?
+  followUpSentAt DateTime?
   gmailMessageId String?
+  isFollowUp     Boolean   @default(false)
   openedAt       DateTime?
+  parentDraftId  Int?
   repliedAt      DateTime?
   replyCount     Int       @default(0)
-  
   variant        String?
-  
-  isFollowUp     Boolean   @default(false)
-  parentDraftId  Int?
-  followUpSentAt DateTime?
 
   @@index([status])
   @@index([brokerName])
@@ -188,146 +160,120 @@ model OutreachDraft {
 }
 
 model BrokerConversation {
-  id             Int      @id @default(autoincrement())
-  brokerName     String
-  brokerEmail    String
-  
-  lastOutreach   DateTime?
-  lastReply      DateTime?
-  
-  totalOutreach  Int      @default(0)
-  totalReplies   Int      @default(0)
-  
-  status         String   @default("active")
-  notes          String?  @db.Text
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  id            Int       @id @default(autoincrement())
+  brokerName    String
+  brokerEmail   String
+  lastOutreach  DateTime?
+  lastReply     DateTime?
+  totalOutreach Int       @default(0)
+  totalReplies  Int       @default(0)
+  status        String    @default("active")
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
   @@unique([brokerName, brokerEmail])
   @@index([status])
   @@map("broker_conversations")
 }
 
-// ============================================
-// NEW FLEET MODELS FOR RIGBY (add these)
-// ============================================
-
 model Fleet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  trucks    Truck[]
-  trailers  Trailer[]
+  id        String      @id @default(cuid())
+  userId    String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   drivers   Driver[]
   expenses  Expense[]
   loads     FleetLoad[]
+  trailers  Trailer[]
+  trucks    Truck[]
 }
 
 model Truck {
-  id             String   @id @default(cuid())
-  fleetId        String
-  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  
-  year           Int
-  make           String
-  model          String
-  miles          Int
-  purchasePrice  Float
-  currentValue   Float?
-  
-  loanAmount     Float?
-  loanAPR        Float?
-  loanTerm       Int?
-  downPayment    Float?
-  loanBalance    Float?
-  
-  status         String   @default("active")
-  notes          String?
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  id            String   @id @default(cuid())
+  fleetId       String
+  year          Int
+  make          String
+  model         String
+  miles         Int
+  purchasePrice Float
+  currentValue  Float?
+  loanAmount    Float?
+  loanAPR       Float?
+  loanTerm      Int?
+  downPayment   Float?
+  loanBalance   Float?
+  status        String   @default("active")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  fleet         Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
   @@index([fleetId])
 }
 
 model Trailer {
   id             String   @id @default(cuid())
   fleetId        String
-  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  
   year           Int
   make           String
   type           String
   length         Int
   purchasePrice  Float
   currentValue   Float?
-  
   loanAmount     Float?
   loanAPR        Float?
   loanTerm       Int?
   downPayment    Float?
   loanBalance    Float?
-  
   hasEStraps     Boolean  @default(false)
   hasTrailerLock Boolean  @default(false)
   hasSlidingDoor Boolean  @default(false)
   hasReefer      Boolean  @default(false)
   floorType      String?
-  
   status         String   @default("active")
   notes          String?
-  
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  
+  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
   @@index([fleetId])
 }
 
 model Driver {
-  id             String   @id @default(cuid())
-  fleetId        String
-  fleet          Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  
-  name           String
-  payStructure   String
-  payRate        Float
-  
+  id                String    @id @default(cuid())
+  fleetId           String
+  name              String
+  payStructure      String
+  payRate           Float
   preferredSchedule String?
-  homeDays       Int?
-  
-  hasELD         Boolean  @default(false)
-  hasDashcam     Boolean  @default(false)
-  gpsType        String?
-  
-  medCardExpiry  DateTime?
-  drugTestDate   DateTime?
-  
-  status         String   @default("active")
-  notes          String?
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  homeDays          Int?
+  hasELD            Boolean   @default(false)
+  hasDashcam        Boolean   @default(false)
+  gpsType           String?
+  medCardExpiry     DateTime?
+  drugTestDate      DateTime?
+  status            String    @default("active")
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  fleet             Fleet     @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
   @@index([fleetId])
 }
 
 model Expense {
   id          String   @id @default(cuid())
   fleetId     String
-  fleet       Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  
   category    String
   amount      Float
   description String?
   date        DateTime @default(now())
   isEstimate  Boolean  @default(false)
-  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+  fleet       Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
   @@index([fleetId, category])
   @@index([fleetId, date])
 }
@@ -335,35 +281,379 @@ model Expense {
 model FleetLoad {
   id          String   @id @default(cuid())
   fleetId     String
-  fleet       Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  
   loadNumber  String?
   origin      String?
   destination String?
   miles       Int
   revenue     Float
   date        DateTime @default(now())
-  
   notes       String?
-  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+  fleet       Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
   @@index([fleetId, date])
 }
 
 model ComplianceData {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  
-  mcNumber    String?
-  dotNumber   String?
-  
-  insuranceCoverage Float?
-  insurancePremium  Float?
-  
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  mcNumber            String?
+  dotNumber           String?
+  insuranceCoverage   Float?
+  insurancePremium    Float?
   maintenanceSchedule String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model broker_contacts {
+  id              Int               @id @default(autoincrement())
+  broker_id       Int
+  name            String?
+  email           String?           @db.Citext
+  phone           String?
+  source          String?           @default("ratecon")
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  brokers         brokers           @relation(fields: [broker_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  load_candidates load_candidates[]
+  outreach_emails outreach_emails[]
+
+  @@index([broker_id], map: "idx_broker_contacts_broker_id")
+}
+
+model brokers {
+  id              Int               @id @default(autoincrement())
+  name            String            @unique @db.VarChar(150)
+  email           String?           @db.VarChar(255)
+  broker_contacts broker_contacts[]
+  load_candidates load_candidates[]
+  loads           loads[]
+  outreach_emails outreach_emails[]
+
+  @@index([name], map: "idx_brokers_name")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cards {
+  id         Int        @id @default(autoincrement())
+  last4      String
+  brand      String?
+  driver_id  Int?
+  nickname   String?
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?  @default(now()) @db.Timestamptz(6)
+  drivers    drivers?   @relation(fields: [driver_id], references: [id], onUpdate: NoAction)
+  expenses   expenses[]
+
+  @@unique([last4, brand])
+  @@index([driver_id], map: "idx_cards_driver_id")
+  @@index([last4], map: "idx_cards_last4")
+}
+
+model dispatch_plans {
+  id                 Int       @id @default(autoincrement())
+  driver_name        String?   @db.VarChar(100)
+  days_otr           Int?
+  days_off           Int?
+  total_working_days Int?
+  miles_needed       Int?
+  avg_rpm_needed     Decimal?  @db.Decimal(5, 2)
+  target_revenue     Int?
+  miles_per_trip     Int?
+  revenue_per_trip   Int?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model driver_aliases {
+  id         Int       @id @default(autoincrement())
+  driver_id  Int
+  alias_name String    @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  drivers    drivers   @relation(fields: [driver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([driver_id, alias_name])
+}
+
+model drivers {
+  id                   Int                    @id @default(autoincrement())
+  name                 String                 @unique @db.VarChar(100)
+  truck_id             String?                @db.VarChar(50)
+  active               Boolean?               @default(true)
+  pay_rate             Decimal?               @default(0) @db.Decimal(10, 2)
+  cards                cards[]
+  driver_aliases       driver_aliases[]
+  expenses             expenses[]
+  fixed_costs          fixed_costs[]
+  lane_recommendations lane_recommendations[]
+  load_candidates      load_candidates[]
+  loads                loads[]
+  outreach_emails      outreach_emails[]
+
+  @@index([active], map: "idx_drivers_active")
+  @@index([name], map: "idx_drivers_name")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model expenses {
+  id               Int             @id @default(autoincrement())
+  load_id          Int?
+  driver_id        Int?
+  expense_type     String          @db.VarChar(30)
+  category         String?         @db.VarChar(50)
+  amount           Decimal         @db.Decimal(12, 2)
+  vendor           String?         @db.VarChar(120)
+  city             String?         @db.VarChar(80)
+  state            String?         @db.Char(2)
+  gallons          Decimal?        @db.Decimal(10, 3)
+  txn_at           DateTime        @db.Timestamptz(6)
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  card_id          Int?
+  source           String?         @default("cc")
+  price_per_gallon Decimal?        @db.Decimal(10, 3)
+  date             DateTime?       @db.Date
+  description      String?
+  driver_name      String?         @db.VarChar(255)
+  raw_data         Json?
+  notes            String?
+  batch_id         Int?
+  upload_batches   upload_batches? @relation(fields: [batch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cards            cards?          @relation(fields: [card_id], references: [id], onUpdate: NoAction)
+  drivers          drivers?        @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  loads            loads?          @relation(fields: [load_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([batch_id], map: "idx_expenses_batch_id")
+  @@index([card_id], map: "idx_expenses_card_id")
+  @@index([category], map: "idx_expenses_category")
+  @@index([date], map: "idx_expenses_date")
+  @@index([driver_id], map: "idx_expenses_driver_id")
+  @@index([driver_name], map: "idx_expenses_driver_name")
+  @@index([driver_id, txn_at], map: "idx_expenses_driver_time")
+  @@index([load_id], map: "idx_expenses_load")
+  @@index([load_id], map: "idx_expenses_load_id")
+  @@index([source], map: "idx_expenses_source")
+  @@index([txn_at], map: "idx_expenses_txn_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model fixed_costs {
+  id                Int       @id @default(autoincrement())
+  driver_id         Int
+  month             DateTime  @db.Date
+  insurance         Decimal?  @default(0) @db.Decimal(12, 2)
+  truck_payment     Decimal?  @default(0) @db.Decimal(12, 2)
+  trailer_payment   Decimal?  @default(0) @db.Decimal(12, 2)
+  cpa               Decimal?  @default(0) @db.Decimal(12, 2)
+  eld               Decimal?  @default(0) @db.Decimal(12, 2)
+  other             Decimal?  @default(0) @db.Decimal(12, 2)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  prepass           Decimal?  @default(0) @db.Decimal(10, 2)
+  load_board        Decimal?  @default(0) @db.Decimal(10, 2)
+  ifta              Decimal?  @default(0) @db.Decimal(10, 2)
+  compliance        Decimal?  @default(0) @db.Decimal(10, 2)
+  payroll_tax       Decimal?  @default(0) @db.Decimal(10, 2)
+  business_tax      Decimal?  @default(0) @db.Decimal(10, 2)
+  interest_payments Decimal?  @default(0) @db.Decimal(10, 2)
+  drivers           drivers   @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([driver_id, month])
+  @@index([driver_id, month], map: "idx_fixed_costs_driver_month")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model lane_recommendations {
+  id            Int       @id @default(autoincrement())
+  scope         String
+  driver_id     Int?
+  origin_region String
+  dest_region   String
+  origin_zip3   String?
+  dest_zip3     String?
+  origin_state  String?
+  dest_state    String?
+  avg_rpm       Decimal   @db.Decimal(8, 2)
+  avg_ppm       Decimal?  @db.Decimal(8, 2)
+  avg_miles     Int
+  avg_deadhead  Int?
+  loads_count   Int
+  lane_score    Decimal   @db.Decimal(8, 3)
+  window_start  DateTime  @db.Date
+  window_end    DateTime  @db.Date
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  drivers       drivers?  @relation(fields: [driver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([scope, driver_id, lane_score(sort: Desc)], map: "idx_lane_recs_scope_driver")
+  @@index([lane_score(sort: Desc)], map: "idx_lane_recs_score")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model load_candidates {
+  id              Int              @id @default(autoincrement())
+  driver_id       Int?
+  broker_id       Int?
+  contact_id      Int?
+  pickup_city     String?
+  pickup_state    String?
+  pickup_zip      String?
+  pickup_at       DateTime?        @db.Timestamptz(6)
+  drop_city       String?
+  drop_state      String?
+  drop_zip        String?
+  delivery_at     DateTime?        @db.Timestamptz(6)
+  rate            Decimal?         @db.Decimal(12, 2)
+  miles           Int?
+  miles_source    String?
+  rpm             Decimal?         @db.Decimal(8, 2)
+  score           Decimal?         @db.Decimal(8, 3)
+  status          String?
+  reasons         String[]
+  emailed         Boolean?         @default(false)
+  source          String?          @default("screenshot")
+  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  brokers         brokers?         @relation(fields: [broker_id], references: [id], onUpdate: NoAction)
+  broker_contacts broker_contacts? @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  drivers         drivers?         @relation(fields: [driver_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_load_candidates_created_at")
+  @@index([driver_id], map: "idx_load_candidates_driver_id")
+  @@index([status], map: "idx_load_candidates_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model loads {
+  id               Int             @id @default(autoincrement())
+  broker_id        Int
+  driver_id        Int?
+  load_number      String          @db.VarChar(50)
+  gross_amount     Decimal         @db.Decimal(12, 2)
+  net_amount       Decimal?        @db.Decimal(12, 2)
+  lumper           Decimal?        @default(0) @db.Decimal(12, 2)
+  pickup_location  String?         @db.VarChar(255)
+  dropoff_location String?         @db.VarChar(255)
+  miles            Int?
+  deadhead         Int?            @default(0)
+  pickup_at        DateTime?       @db.Timestamptz(6)
+  delivery_at      DateTime?       @db.Timestamptz(6)
+  source_type      String?         @db.VarChar(20)
+  document_url     String?
+  source_hash      String?         @db.VarChar(64)
+  parse_confidence Decimal?        @db.Decimal(4, 3)
+  status           String?         @default("delivered") @db.VarChar(20)
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  pickup_city      String?
+  pickup_state     String?
+  pickup_zip       String?
+  dropoff_city     String?
+  dropoff_state    String?
+  dropoff_zip      String?
+  deadhead_miles   Int?
+  deadhead_source  String?         @default("none")
+  miles_source     String?         @default("pdf")
+  lumper_income    Decimal?        @default(0) @db.Decimal(12, 2)
+  detention_income Decimal?        @default(0) @db.Decimal(12, 2)
+  reimburse_income Decimal?        @default(0) @db.Decimal(12, 2)
+  total_expenses   Decimal?        @default(0) @db.Decimal(10, 2)
+  profit           Decimal?        @db.Decimal(10, 2)
+  profit_margin    Decimal?        @db.Decimal(5, 2)
+  batch_id         Int?
+  expenses         expenses[]
+  upload_batches   upload_batches? @relation(fields: [batch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  brokers          brokers         @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  drivers          drivers?        @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([broker_id, load_number], map: "loads_unique_per_broker")
+  @@index([batch_id], map: "idx_loads_batch_id")
+  @@index([broker_id], map: "idx_loads_broker_id")
+  @@index([broker_id, status, pickup_at], map: "idx_loads_broker_status_pickup")
+  @@index([created_at], map: "idx_loads_created_at")
+  @@index([delivery_at], map: "idx_loads_delivery_at")
+  @@index([driver_id], map: "idx_loads_driver")
+  @@index([driver_id], map: "idx_loads_driver_id")
+  @@index([gross_amount], map: "idx_loads_gross_amount")
+  @@index([miles], map: "idx_loads_miles")
+  @@index([pickup_at], map: "idx_loads_pickup_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model outreach_emails {
+  id              Int              @id @default(autoincrement())
+  user_id         Int?
+  driver_id       Int?
+  broker_id       Int?
+  contact_id      Int?
+  subject         String
+  body            String
+  lane_origin     String?
+  lane_dest       String?
+  email_type      String?          @default("general")
+  status          String?          @default("draft")
+  sent_via        String?
+  sent_at         DateTime?        @db.Timestamptz(6)
+  context         Json?
+  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  brokers         brokers?         @relation(fields: [broker_id], references: [id], onUpdate: NoAction)
+  broker_contacts broker_contacts? @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  drivers         drivers?         @relation(fields: [driver_id], references: [id], onUpdate: NoAction)
+
+  @@index([broker_id], map: "idx_outreach_emails_broker_id")
+  @@index([driver_id], map: "idx_outreach_emails_driver_id")
+  @@index([sent_at], map: "idx_outreach_emails_sent_at")
+  @@index([status], map: "idx_outreach_emails_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model trailers {
+  id          Int       @id @default(autoincrement())
+  external_id String?
+  type        String?
+  year        Int?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model trucks {
+  id          Int       @id @default(autoincrement())
+  external_id String?
+  year        Int?
+  make        String?
+  model       String?
+  vin         String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model upload_batches {
+  id           Int        @id @default(autoincrement())
+  batch_type   String     @db.VarChar(50)
+  upload_date  DateTime?  @default(now()) @db.Timestamp(6)
+  file_count   Int?       @default(1)
+  record_count Int?       @default(0)
+  period       String?    @db.VarChar(50)
+  description  String?
+  metadata     Json?
+  expenses     expenses[]
+  loads        loads[]
+
+  @@index([batch_type, upload_date(sort: Desc)], map: "idx_upload_batches_type_date")
+}
+
+enum EmailProvider {
+  GMAIL
+  OUTLOOK
+}
+
+enum MessageSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
 }

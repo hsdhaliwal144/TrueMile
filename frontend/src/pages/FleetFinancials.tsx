@@ -1272,28 +1272,36 @@ export default function FleetFinancials() {
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              style={{
-                padding: '8px 32px 8px 12px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '500',
-                backgroundColor: 'white',
-                color: '#374151',
-                cursor: 'pointer',
-                appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 10px center'
-              }}>
-              <option value="ytd">YTD</option>
-              <option value="q4">Q4</option>
-              <option value="q3">Q3</option>
-              <option value="q2">Q2</option>
-              <option value="q1">Q1</option>
-            </select>
+  value={period}
+  onChange={(e) => setPeriod(e.target.value)}
+  style={{
+    padding: '8px 32px 8px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    backgroundColor: 'white',
+    color: '#374151',
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 10px center'
+  }}>
+  <option value="ytd">YTD</option>
+  <option value="2025-12">December 2025</option>
+  <option value="2025-11">November 2025</option>
+  <option value="2025-10">October 2025</option>
+  <option value="2025-09">September 2025</option>
+  <option value="2025-08">August 2025</option>
+  <option value="2025-07">July 2025</option>
+  <option value="2025-06">June 2025</option>
+  <option value="2025-05">May 2025</option>
+  <option value="2025-04">April 2025</option>
+  <option value="2025-03">March 2025</option>
+  <option value="2025-02">February 2025</option>
+  <option value="2025-01">January 2025</option>
+</select>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
               <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>Factoring:</span>

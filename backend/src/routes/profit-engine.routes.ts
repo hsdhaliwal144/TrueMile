@@ -794,29 +794,29 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       dateFilter = `AND l.pickup_at BETWEEN '${startDate}' AND '${endDate}'`;
     } else {
       switch (period) {
-        case 'current_month':
-          dateFilter = `AND EXTRACT(MONTH FROM l.pickup_at) = ${now.getMonth() + 1} 
-                        AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
-          break;
-        case 'last_month':
-          const lastMonth = now.getMonth() === 0 ? 12 : now.getMonth();
-          const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-          dateFilter = `AND EXTRACT(MONTH FROM l.pickup_at) = ${lastMonth} 
-                        AND EXTRACT(YEAR FROM l.pickup_at) = ${lastMonthYear}`;
-          break;
-        case 'ytd':
-          dateFilter = `AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
-          break;
-        case 'last_year':
-          dateFilter = `AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear() - 1}`;
-          break;
-        default:
-          const [year, month] = (period as string).split('-');
-          if (year && month) {
-            dateFilter = `AND EXTRACT(MONTH FROM l.pickup_at) = ${parseInt(month)} 
-                          AND EXTRACT(YEAR FROM l.pickup_at) = ${parseInt(year)}`;
-          }
-      }
+  case 'current_month':
+    dateFilter = `AND EXTRACT(MONTH FROM l.pickup_at) = ${now.getMonth() + 1} 
+                  AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
+    break;
+  case 'last_month':
+    const lastMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+    const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    dateFilter = `AND EXTRACT(MONTH FROM l.pickup_at) = ${lastMonth} 
+                  AND EXTRACT(YEAR FROM l.pickup_at) = ${lastMonthYear}`;
+    break;
+  case 'ytd':
+    dateFilter = `AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
+    break;
+  case 'last_year':
+    dateFilter = `AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear() - 1}`;
+    break;
+  default:
+    const [year, month] = (period as string).split('-');
+    if (year && month) {
+      dateFilter = `AND EXTRACT(MONTH FROM l.pickup_at) = ${parseInt(month)} 
+                    AND EXTRACT(YEAR FROM l.pickup_at) = ${parseInt(year)}`;
+    }
+}
     }
 
     // Get all active drivers first (including those without loads)
@@ -830,13 +830,13 @@ router.get('/dashboard', async (req: Request, res: Response) => {
 
     // Get loads for drivers with loads
     const loadsResult = await pool.query(`
-      SELECT l.*, d.name as driver_name, b.name as broker_name
-      FROM loads l
-      JOIN drivers d ON l.driver_id = d.id
-      JOIN brokers b ON l.broker_id = b.id
-      WHERE l.pickup_at IS NOT NULL ${dateFilter}
-      ORDER BY d.name, l.pickup_at ASC
-    `);
+  SELECT l.*, d.name as driver_name, b.name as broker_name
+  FROM loads l
+  JOIN drivers d ON l.driver_id = d.id
+  JOIN brokers b ON l.broker_id = b.id
+  WHERE l.pickup_at IS NOT NULL ${dateFilter}
+  ORDER BY d.name, l.pickup_at ASC
+`);
 
     const fixedCostsResult = await pool.query(`
       SELECT d.id as driver_id, d.name as driver_name,
@@ -988,17 +988,17 @@ router.get('/expenses-by-driver', async (req: Request, res: Response): Promise<v
                       AND EXTRACT(YEAR FROM e.txn_at) = ${lastMonthYear}`;
         break;
       case 'q1':
-        dateFilter = `AND EXTRACT(QUARTER FROM e.txn_at) = 1 AND EXTRACT(YEAR FROM e.txn_at) = ${now.getFullYear()}`;
-        break;
-      case 'q2':
-        dateFilter = `AND EXTRACT(QUARTER FROM e.txn_at) = 2 AND EXTRACT(YEAR FROM e.txn_at) = ${now.getFullYear()}`;
-        break;
-      case 'q3':
-        dateFilter = `AND EXTRACT(QUARTER FROM e.txn_at) = 3 AND EXTRACT(YEAR FROM e.txn_at) = ${now.getFullYear()}`;
-        break;
-      case 'q4':
-        dateFilter = `AND EXTRACT(QUARTER FROM e.txn_at) = 4 AND EXTRACT(YEAR FROM e.txn_at) = ${now.getFullYear()}`;
-        break;
+  dateFilter = `AND EXTRACT(QUARTER FROM l.pickup_at) = 1 AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
+  break;
+case 'q2':
+  dateFilter = `AND EXTRACT(QUARTER FROM l.pickup_at) = 2 AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
+  break;
+case 'q3':
+  dateFilter = `AND EXTRACT(QUARTER FROM l.pickup_at) = 3 AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
+  break;
+case 'q4':
+  dateFilter = `AND EXTRACT(QUARTER FROM l.pickup_at) = 4 AND EXTRACT(YEAR FROM l.pickup_at) = ${now.getFullYear()}`;
+  break;
     }
 
     // Get variable expenses from expenses table
