@@ -20,6 +20,7 @@
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@microsoft/microsoft-graph-types": "^2.40.0",
     "@prisma/client": "^6.18.0",
+    "@supabase/supabase-js": "^2.86.0",
     "axios": "^1.13.2",
     "canvas": "^3.2.0",
     "cors": "^2.8.5",
